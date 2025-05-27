@@ -10,7 +10,7 @@ export default function Chatbox(){
                     <span className = {"self-end"}>Hi there</span>
                     <PersonStandingIcon className = {"m-2"}/>
                 </div>
-                <span className = {"self-start"}>Wassup</span>
+                <span className = {"self-start"}>Wassup Bruh</span>
             </div>
         </div>  
     )
