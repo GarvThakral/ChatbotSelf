@@ -2,25 +2,52 @@ import { create } from 'zustand';
 import { AllMessageInterface } from "../components/chatbox";
 
 interface ChatStore {
-  messages: AllMessageInterface[];
-  currentMessage: string;
-  setMessages: (messages: AllMessageInterface[]) => void;
-  setCurrentMessage: (message: string) => void;
-  addMessage: (message: AllMessageInterface) => void;
-  clearMessages: () => void;
+  chats: Record<string, AllMessageInterface[]>;
+  currentChatId: string | null;
+
+  setCurrentChat: (id: string) => void;
+
+  addChat:    (id: string) => void;
+  addMessage:(chatId: string, msg: AllMessageInterface) => void;
+  clearChat: (chatId: string) => void;
+
+  deleteChat: (id: string) => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
-  messages: [],
-  currentMessage: "",
-  
-  setMessages: (messages) => set({ messages }),
-  
-  setCurrentMessage: (message) => set({ currentMessage: message }),
-  
-  addMessage: (message) => set((state) => ({ 
-    messages: [...state.messages, message] 
-  })),
-  
-  clearMessages: () => set({ messages: [], currentMessage: "" }),
+  chats:        {},
+  currentChatId:null,
+
+  setCurrentChat: (id) => set({ currentChatId: id }),
+
+  addChat: (id) =>
+    set((state) => ({
+      chats: {
+        ...state.chats,
+        [id]: state.chats[id] ?? [],
+      },
+      currentChatId: id,
+    })),
+
+  addMessage: (chatId, msg) =>
+    set((state) => ({
+      chats: {
+        ...state.chats,
+        [chatId]: [...(state.chats[chatId] || []), msg],
+      },
+    })),
+
+  clearChat: (chatId) =>
+    set((state) => ({
+      chats: {
+        ...state.chats,
+        [chatId]: [],
+      },
+    })),
+
+  deleteChat: (id) =>
+    set((state) => {
+      const { [id]: _, ...rest } = state.chats;
+      return { chats: rest, currentChatId: null };
+    }),
 }));

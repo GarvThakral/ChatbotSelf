@@ -1,46 +1,66 @@
 "use client"
 import { useRef } from "react"
-import axios from "axios";
 import { useChatStore } from "../store/chatstore";
-export default function InputBar(){
-    const { currentMessage, setCurrentMessage } = useChatStore();
-async function getResponse() {
-    setCurrentMessage(""); // Clear previous message
 
+export default function InputBar() {
+  const { currentChatId, addMessage } = useChatStore();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function getResponse() {
+    const userText = inputRef.current?.value.trim();
+    if (!userText || !currentChatId) return;
+
+    addMessage(currentChatId, {
+      id: Date.now(),
+      type: "User",
+      text: userText,
+    });
+
+    // clear the input box
+    inputRef.current.value = "";
+
+    // 2️⃣ Fetch the streamed response
     try {
-      const response = await fetch("http://localhost:3000/api/geminiBackend", {
+      const res = await fetch("/api/geminiBackend", {
         method: "POST",
+        body: JSON.stringify({ body: userText }),
       });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let receivedText = "";
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder(); // To decode byte arrays to strings
-      let receivedText = '';
       while (true) {
-        const { done, value } = await reader!.read(); // 'done' is true when the stream is finished
-        if (done) {
-          break; // Exit the loop when the stream ends
-        }
+        const { done, value } = await reader.read();
+        if (done) break;
+        receivedText += decoder.decode(value, { stream: true });
 
-        // Decode the Uint8Array chunk to a string and append it
-        receivedText += decoder.decode(value, { stream: true }); // { stream: true } handles multi-byte characters split across chunks
-        setCurrentMessage(receivedText); // Update the state with the new partial message
+        // optionally, you could show a “typing…” indicator here
       }
 
-      console.log("Streaming complete. Final message:", receivedText);
-
+      // 3️⃣ Add the completed model response
+      addMessage(currentChatId, {
+        id: Date.now(),
+        type: "Model",
+        text: receivedText,
+      });
     } catch (err) {
-      console.error("Error fetching streamed response:", err);
+      console.error("Error fetching response:", err);
     }
   }
-    const inputRef = useRef(null);
-    return (
-        <div className = {"h-[15%] w-full flex items-center justify-center"}>
-            <input ref = {inputRef} placeholder="Enter your input here" className = {'w-[70%]'}></input>
-            <button onClick = {()=>getResponse()}>Send</button>
-        </div>
-    )
+
+  return (
+    <div className="h-[15%] w-full flex items-center justify-center">
+      <input
+        ref={inputRef}
+        placeholder="Enter your input here"
+        className="w-[70%] border px-2 py-1 rounded"
+        onKeyDown={e => e.key === "Enter" && getResponse()}
+      />
+      <button onClick={getResponse} className="ml-2 px-4 py-1 bg-blue-500 text-white rounded">
+        Send
+      </button>
+    </div>
+  );
 }

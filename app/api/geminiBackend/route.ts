@@ -1,16 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextResponse , NextRequest } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { GenerateContentResponse } from "@google/generative-ai"; // Import for type checking
 
 const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_KEY! });
 
-export async function POST() {
+export async function POST(req:NextRequest) {
+  const body = await req.json()
   try {
     const response = await ai.models.generateContentStream({
       model: "gemini-1.5-flash",
-      contents: "Explain how AI works in about 50 words",
+      contents:body.body,
     });
-
     const stream = new ReadableStream({
       async start(controller) {
         try {

@@ -1,23 +1,39 @@
-export default function Sidebar(){
-    return (
-        <div className = {"w-[20%] h-screen"}>
-            <div className = "w-full h-[15%] flex flex-col p-4 justify-center ">
-                <span>Conversations</span>
-                <button>New Chat</button>
-            </div>
-            <div className = "w-full h-[75%] flex flex-col p-4">
-                <div className = {"w-[90%] h-[10%]"}>
-                    <span>Recent</span>
-                </div>
-                <div className = {"w-[90%] h-[90%] flex flex-col pl-4"}>
-                    <span>Chat 1</span>
-                    <span>Chat 2</span>
-                    <span>Chat 2</span>
-                </div>
-            </div>
-            <div className = "w-full h-[10%] flex flex-col items-center justify-center p-4">
-                Powered by Google Gemini
-            </div>
+"use client"
+import { useChatStore } from "../store/chatstore";
+
+export default function Sidebar() {
+  const { chats, currentChatId, setCurrentChat, addChat } = useChatStore();
+
+  return (
+    <div className="w-[20%] h-screen flex flex-col">
+      <div className="h-[15%] p-4 flex flex-col justify-center">
+        <span>Conversations</span>
+        <button onClick={() => {
+          const newId = `chat-${Date.now()}`;
+          addChat(newId);
+        }}>
+          New Chat
+        </button>
+      </div>
+
+      <div className="h-[75%] p-4 overflow-y-auto">
+        <span>Recent</span>
+        <div className="mt-2 flex flex-col space-y-2">
+          {Object.keys(chats).map((id) => (
+            <button
+              key={id}
+              className={`text-left ${id === currentChatId ? 'font-bold' : ''}`}
+              onClick={() => setCurrentChat(id)}
+            >
+              {id}
+            </button>
+          ))}
         </div>
-    )
+      </div>
+
+      <div className="h-[10%] flex items-center justify-center p-4">
+        Powered by Google Gemini
+      </div>
+    </div>
+  );
 }
