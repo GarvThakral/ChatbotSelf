@@ -1,18 +1,49 @@
-import { NextResponse , NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { GenerateContentResponse } from "@google/generative-ai"; // Import for type checking
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyBrjNAMQdMztUGfXTDTtDEF78nSLkfvE9I" });
+const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_KEY! });
 
-export async function POST(){
-  const response = await ai.models.generateContentStream({
-    model: "gemini-2.0-flash",
-    contents: "Explain how AI works",
-  });
-  for await(const chunks of response){
-    console.log(chunks.text)
+export async function POST() {
+  try {
+    const response = await ai.models.generateContentStream({
+      model: "gemini-1.5-flash",
+      contents: "Explain how AI works in about 50 words",
+    });
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of response) {
+            let text = "";
+            if (typeof (chunk as any).text === 'function') {
+              text = (chunk as any).text();
+            } else if (chunk.candidates && chunk.candidates[0] && chunk.candidates[0].content && chunk.candidates[0].content.parts) {
+              text = chunk.candidates[0].content.parts.map(part => 'text' in part ? part.text : '').join('');
+            } else {
+              console.warn("Unexpected chunk structure or no text found:", chunk);
+              text = "";
+            }
+
+            const bytes = new TextEncoder().encode(text);
+            controller.enqueue(bytes);
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
+
+    return new NextResponse(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    return NextResponse.json({ error: "Failed to generate content" }, { status: 500 });
   }
-  
-    return NextResponse.json({
-        message:"check logs"
-    })
 }

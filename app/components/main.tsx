@@ -1,3 +1,4 @@
+"use client"
 import Chatbox from "./chatbox"
 import ChatName from "./chatname"
 import InputBar from "./inputBar"
